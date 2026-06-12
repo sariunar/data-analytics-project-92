@@ -47,3 +47,52 @@ inner join products as p on p.product_id = s.product_id
 group by e.employee_id, e.first_name, e.last_name, extract(DOW from s.sale_date), trim(to_char(s.sale_date, 'Day'))
 order by extract(DOW from s.sale_date), seller;
      
+/*АПервый отчет - нализ покупателей. количество покупателей в разных возрастных группах: 16-25, 26-40 и 40+. 
+ * Итоговая таблица должна быть отсортирована по возрастным группам и содержать следующие поля:
+ * age_category - возрастная группа
+ * age_count - количество человек в группе
+ */
+select 
+	case 
+		when c.age between 16 and 25 then '16-25'
+		when c.age between 26 and 40 then '26-40'
+		when c.age > 40 then '40+'
+	end as age_category,
+	count(c.customer_id) as age_count
+from customers c
+group by age_category
+order by age_category;
+
+/*Во втором отчете предоставьте данные по количеству уникальных покупателей и выручке, которую они принесли. 
+ * Сгруппируйте данные по дате, которая представлена в числовом виде ГОД-МЕСЯЦ. 
+ * Итоговая таблица должна быть отсортирована по дате по возрастанию и содержать следующие поля:
+ * selling_month - дата в указанном формате
+ * total_customers - количество покупателей
+ * income - принесенная выручка*/
+select to_char(s.sale_date, 'YYYY-MM') as selling_month, 
+	count(distinct s.customer_id) as total_customers, 
+	floor(sum(quantity*price)) as income
+from sales s
+inner join products p on s.product_id = p.product_id
+group by selling_month
+order by selling_month;
+
+/*Третий отчет следует составить о покупателях, первая покупка которых была в ходе проведения акций 
+ *(акционные товары отпускали со стоимостью равной 0). Итоговая таблица должна быть отсортирована по id покупателя. 
+ *Таблица состоит из следующих полей:
+ *customer - имя и фамилия покупателя
+ *sale_date - дата покупки
+ *seller - имя и фамилия продавца*/
+select concat(c.first_name, ' ', c.last_name) as customer,
+	sale_date,
+	concat(e.first_name, ' ', e.last_name) as seller
+from (
+	select *, row_number() over(partition by s.customer_id order by s.sale_date ) as rn
+	from sales s
+	) as first_sales
+inner join customers c on first_sales.customer_id = c.customer_id
+inner join employees e on first_sales.sales_person_id = e.employee_id
+inner join products p on first_sales.product_id = p.product_id
+where rn=1 and p.price = 0
+order by first_sales.customer_id;
+
