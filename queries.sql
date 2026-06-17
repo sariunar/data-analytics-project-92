@@ -31,22 +31,32 @@ having avg(s.quantity*p.price) < (
 	inner join products as p2 on p2.product_id = s2.product_id 
 )
 order by average_income asc;
-
+	
 /*Третий отчет содержит информацию о выручке по дням недели. 
  * Каждая запись содержит имя и фамилию продавца, день недели и суммарную выручку. 
  * Отсортируйте данные по порядковому номеру дня недели и seller
  * seller — имя и фамилия продавца
  * day_of_week — название дня недели на английском языке
- * income — суммарная выручка продавца в определенный день недели, округленная до целого числа*/
+ * income — суммарная выручка продавца в определенный день недели, округленная до целого числа*/    
 select concat(e.first_name, ' ', e.last_name) as seller,
-	trim(to_char(s.sale_date, 'Day')) as day_of_week,
+	trim(to_char(s.sale_date, 'day')) as day_of_week,
 	floor(sum(s.quantity*p.price)) as income
 from employees as e
 inner join sales as s on e.employee_id = s.sales_person_id 
 inner join products as p on p.product_id = s.product_id 
-group by e.employee_id, e.first_name, e.last_name, extract(DOW from s.sale_date), trim(to_char(s.sale_date, 'Day'))
-order by extract(DOW from s.sale_date), seller;
-     
+group by e.employee_id, e.first_name, e.last_name, trim(to_char(s.sale_date, 'day'))
+order by 
+	case trim(to_char(s.sale_date, 'day'))
+		when 'monday' then 1
+        when 'tuesday' then 2
+        when 'wednesday' then 3
+        when 'thursday' then 4
+        when 'friday' then 5
+        when 'saturday' then 6
+        when 'sunday' then 7
+    end,
+	seller;
+
 /*АПервый отчет - нализ покупателей. количество покупателей в разных возрастных группах: 16-25, 26-40 и 40+. 
  * Итоговая таблица должна быть отсортирована по возрастным группам и содержать следующие поля:
  * age_category - возрастная группа
